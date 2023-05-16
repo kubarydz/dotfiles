@@ -27,6 +27,9 @@ Plug 'hrsh7th/vim-vsnip'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 
+Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
+Plug 'nvim-telescope/telescope.nvim', { 'tag': '0.1.0' }
+
 " scratch buffer
 Plug 'mtth/scratch.vim'
 
@@ -64,6 +67,9 @@ else
 endif
 
 Plug 'ryanoasis/vim-devicons'
+
+" delve debugger
+Plug 'sebdah/vim-delve'
 
 call plug#end()
 
@@ -146,6 +152,11 @@ nnoremap <leader>lc :lclose<cr>
 nnoremap <leader>ln :lnext<cr>
 nnoremap <leader>lp :lprevious<cr>
 
+" window resize
+noremap <silent> <C-S-Left> :vertical resize -5<CR>
+noremap <silent> <C-S-Right> :vertical resize +5<CR>
+
+
 " escape pane-moving commands in terminal mode
 tnoremap <C-w>h <C-\><C-n><C-w>h<cmd>FloatermHide default<cr>
 tnoremap <C-w>j <C-\><C-n><C-w>j<cmd>FloatermHide default<cr>
@@ -153,9 +164,16 @@ tnoremap <C-w>k <C-\><C-n><C-w>k<cmd>FloatermHide default<cr>
 tnoremap <C-w>l <C-\><C-n><C-w>l<cmd>FloatermHide default<cr>
 
 " fzf
-nnoremap <C-p> <cmd>Files<cr>
-nnoremap <C-b> <cmd>Buffers<cr>
-nnoremap <C-f> <cmd>:Rg<cr>
+"nnoremap <C-p> <cmd>Files<cr>
+"nnoremap <C-b> <cmd>Buffers<cr>
+"nnoremap <C-f> <cmd>:Rg<cr>
+
+" telescope
+nnoremap <C-p> <cmd>Telescope find_files<cr>
+nnoremap <C-f> <cmd>Telescope live_grep<cr>
+nnoremap <C-b> <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
 
 " floaterm
 nnoremap <leader>ft <cmd>FloatermToggle default<cr>
@@ -309,7 +327,7 @@ local on_attach = function(client, bufnr)
   buf_set_keymap('n', '<c-g>', '<cmd>lua vim.lsp.buf.references()<CR>', opts)
   buf_set_keymap('n', '<c-\\>', '<cmd>lua vim.lsp.buf.type_definition()<CR>', opts)
   buf_set_keymap('n', '<leader>r', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
-  buf_set_keymap('n', '<leader>f', '<cmd>lua vim.lsp.buf.formatting()<CR>', opts)
+  buf_set_keymap('n', '<leader>f', '<cmd>lua vim.lsp.buf.format{async = true}()<CR>', opts)
   buf_set_keymap('n', '<leader>i', '<cmd>lua goimports(1000)<CR>', opts)
 
 --  require('completion').on_attach()
@@ -323,7 +341,7 @@ local on_attach = function(client, bufnr)
       autocmd CursorHold <buffer> lua vim.lsp.buf.document_highlight()
       autocmd CursorHoldI <buffer> lua vim.lsp.buf.document_highlight()
       autocmd CursorMoved <buffer> lua vim.lsp.buf.clear_references()
-      autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting()
+      autocmd BufWritePre <buffer> lua vim.lsp.buf.format({async = true})
       autocmd BufWritePre <buffer> lua goimports(1000)
     augroup END
   ]], false)
@@ -342,7 +360,7 @@ function goimports(timeout_ms)
 
   if action.edit or type(action.command) == "table" then
     if action.edit then
-      vim.lsp.util.apply_workspace_edit(action.edit)
+      vim.lsp.util.apply_workspace_edit(action.edit, vim.lsp.client().offset_encoding)
     end
     if type(action.command) == "table" then
       vim.lsp.buf.execute_command(action.command)
